@@ -18,6 +18,7 @@ public final class Config {
     public static final String K_INTEGRITY = "integrity";
     public static final String K_PAY = "pay";
     public static final String K_COMPLIANCE = "compliance";
+    public static final String K_AD_SKIP = "ad_skip";
     public static final String K_PUSH_BY_ID = "push_reward_by_id";
     public static final String K_NATIVE = "native";
     public static final String K_NATIVE_MASK = "native_mask";
@@ -36,6 +37,7 @@ public final class Config {
     public static boolean integrity = true;
     public static boolean pay = true;
     public static boolean compliance = true;
+    public static boolean adSkip = true;
     public static boolean pushRewardById = false;
     public static boolean nativePatch = true;
     public static boolean allProcesses = false;
@@ -103,6 +105,7 @@ public final class Config {
             integrity = p.getBoolean(K_INTEGRITY, true);
             pay = p.getBoolean(K_PAY, true);
             compliance = p.getBoolean(K_COMPLIANCE, true);
+            adSkip = p.getBoolean(K_AD_SKIP, true);
             pushRewardById = p.getBoolean(K_PUSH_BY_ID, false);
             nativePatch = p.getBoolean(K_NATIVE, true);
             allProcesses = p.getBoolean(K_ALL_PROCESSES, false);
@@ -135,6 +138,7 @@ public final class Config {
         integrity = b.getBoolean(K_INTEGRITY, true);
         pay = b.getBoolean(K_PAY, true);
         compliance = b.getBoolean(K_COMPLIANCE, true);
+        adSkip = b.getBoolean(K_AD_SKIP, true);
         pushRewardById = b.getBoolean(K_PUSH_BY_ID, false);
         nativePatch = b.getBoolean(K_NATIVE, true);
         allProcesses = b.getBoolean(K_ALL_PROCESSES, false);
@@ -155,6 +159,7 @@ public final class Config {
         b.putBoolean(K_INTEGRITY, p.getBoolean(K_INTEGRITY, true));
         b.putBoolean(K_PAY, p.getBoolean(K_PAY, true));
         b.putBoolean(K_COMPLIANCE, p.getBoolean(K_COMPLIANCE, true));
+        b.putBoolean(K_AD_SKIP, p.getBoolean(K_AD_SKIP, true));
         b.putBoolean(K_PUSH_BY_ID, p.getBoolean(K_PUSH_BY_ID, false));
         b.putBoolean(K_NATIVE, p.getBoolean(K_NATIVE, true));
         b.putBoolean(K_ALL_PROCESSES, p.getBoolean(K_ALL_PROCESSES, false));
@@ -175,6 +180,7 @@ public final class Config {
                 .putBoolean(K_INTEGRITY, p.getBoolean(K_INTEGRITY, true))
                 .putBoolean(K_PAY, p.getBoolean(K_PAY, true))
                 .putBoolean(K_COMPLIANCE, p.getBoolean(K_COMPLIANCE, true))
+                .putBoolean(K_AD_SKIP, p.getBoolean(K_AD_SKIP, true))
                 .putBoolean(K_PUSH_BY_ID, p.getBoolean(K_PUSH_BY_ID, false))
                 .putBoolean(K_NATIVE, p.getBoolean(K_NATIVE, true))
                 .putBoolean(K_ALL_PROCESSES, p.getBoolean(K_ALL_PROCESSES, false))

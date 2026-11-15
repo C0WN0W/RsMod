@@ -98,6 +98,7 @@ public final class XposedInit implements IXposedHookLoadPackage, IXposedHookZygo
         HookUtil.log("config source=" + Config.source
                 + " integrity=" + Config.integrity
                 + " pay=" + Config.pay + " compliance=" + Config.compliance
+                + " adSkip=" + Config.adSkip
                 + " pushRewardById=" + Config.pushRewardById
                 + " native=" + Config.nativePatch + " mask=" + Config.nativeMask);
 
@@ -127,6 +128,14 @@ public final class XposedInit implements IXposedHookLoadPackage, IXposedHookZygo
                 ComplianceBypass.install(cl);
             } catch (Throwable t) {
                 HookUtil.log("ComplianceBypass error " + t);
+            }
+        }
+
+        if (Config.adSkip) {
+            try {
+                AdSkip.install(cl);
+            } catch (Throwable t) {
+                HookUtil.log("AdSkip error " + t);
             }
         }
 

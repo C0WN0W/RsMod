@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private MaterialSwitch swIntegrity;
     private MaterialSwitch swPay;
     private MaterialSwitch swCompliance;
+    private MaterialSwitch swAdSkip;
     private MaterialSwitch swPushById;
     private MaterialSwitch swNative;
     private MaterialSwitch swAllProcesses;
@@ -85,6 +86,9 @@ public class MainActivity extends AppCompatActivity {
         swPushById = addRow(apk, R.drawable.ic_gift,
                 R.string.ui_row_push, R.string.ui_row_push_sub,
                 prefs.getBoolean(Config.K_PUSH_BY_ID, false));
+        swAdSkip = addRow(apk, R.drawable.ic_skip,
+                R.string.ui_row_adskip, R.string.ui_row_adskip_sub,
+                prefs.getBoolean(Config.K_AD_SKIP, true));
 
         LinearLayout hero = findViewById(R.id.group_hero);
         swNative = addRow(hero, R.drawable.ic_power,
@@ -239,6 +243,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean(Config.K_INTEGRITY, swIntegrity.isChecked())
                 .putBoolean(Config.K_PAY, swPay.isChecked())
                 .putBoolean(Config.K_COMPLIANCE, swCompliance.isChecked())
+                .putBoolean(Config.K_AD_SKIP, swAdSkip.isChecked())
                 .putBoolean(Config.K_PUSH_BY_ID, swPushById.isChecked())
                 .putBoolean(Config.K_NATIVE, swNative.isChecked())
                 .putBoolean(Config.K_ALL_PROCESSES, swAllProcesses.isChecked())

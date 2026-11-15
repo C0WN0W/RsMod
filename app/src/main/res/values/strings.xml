@@ -35,6 +35,8 @@
     <string name="ui_row_compliance_sub">TapTap 合规、实名与支付限额全部放行</string>
     <string name="ui_row_push">推送payPushRewardOfInAppID</string>
     <string name="ui_row_push_sub">额外按商品 ID 补发奖励</string>
+    <string name="ui_row_adskip">跳过广告</string>
+    <string name="ui_row_adskip_sub">检测到广告 Activity 直接强制完成</string>
 
     <string name="ui_row_native">总开关</string>
     <string name="ui_row_native_sub">对 libil2cpp.so 写入道具不坏补丁</string>
