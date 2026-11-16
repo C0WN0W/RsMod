@@ -5,14 +5,28 @@ import android.content.Context;
 import android.content.Intent;
 
 /**
- * 心跳备用通道：某些 ROM / targetSdk 上 ContentProvider 会被包可见性拦掉，
- * 这种情况下被注入的进程还会显式发一个广播过来。
+ * 备用通道：心跳 / dump 进度。
+ * 某些 ROM / targetSdk 上 ContentProvider 会被包可见性拦掉，这时被注入的进程会改发显式广播。
  */
 public class StatusReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || !StatusStore.ACTION_HEARTBEAT.equals(intent.getAction())) {
+        if (intent == null) {
+            return;
+        }
+        String action = intent.getAction();
+
+        if (StatusStore.ACTION_DUMP_STATE.equals(action)) {
+            String status = intent.getStringExtra(StatusStore.EXTRA_DUMP_STATUS);
+            // 没带这个 extra 就表示“不改已有结果”
+            String rvas = intent.hasExtra(StatusStore.EXTRA_DUMP_RVAS)
+                    ? intent.getStringExtra(StatusStore.EXTRA_DUMP_RVAS) : null;
+            StatusStore.recordDump(context, status, rvas);
+            return;
+        }
+
+        if (!StatusStore.ACTION_HEARTBEAT.equals(action)) {
             return;
         }
         String pkg = intent.getStringExtra(StatusStore.EXTRA_PKG);

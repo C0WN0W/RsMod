@@ -31,7 +31,27 @@ public class StatusProvider extends ContentProvider {
         if (StatusStore.METHOD_CONFIG.equals(method)) {
             return serveConfig();
         }
+        if (StatusStore.METHOD_DUMP_STATE.equals(method)) {
+            return serveDumpState(extras);
+        }
         return serveHeartbeat(method, arg, extras);
+    }
+
+    /** dump 面板：游戏进程上报进度 / 最终 RVA（只写状态，不读任何东西）。 */
+    private Bundle serveDumpState(Bundle extras) {
+        Bundle out = new Bundle();
+        String caller = callerPackage();
+        if (caller == null
+                || (!StatusStore.MODULE_PKG.equals(caller) && !StatusStore.GAME_PKG.equals(caller))) {
+            out.putBoolean("ok", false);
+            out.putString("reason", "unauthorized caller " + caller);
+            return out;
+        }
+        String status = extras == null ? "" : extras.getString(StatusStore.EXTRA_DUMP_STATUS);
+        String rvas = extras == null ? null : extras.getString(StatusStore.EXTRA_DUMP_RVAS);
+        StatusStore.recordDump(getContext(), status, rvas);
+        out.putBoolean("ok", true);
+        return out;
     }
 
     private Bundle serveConfig() {

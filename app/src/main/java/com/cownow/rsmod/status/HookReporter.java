@@ -65,4 +65,30 @@ public final class HookReporter {
         }
         return ctx == null ? "" : ctx.getPackageName();
     }
+
+    /** dump 面板：游戏进程把进度/结果推给模块设置页。rvas 为 null 表示不改已有结果。 */
+    public static void reportDump(Context ctx, String status, String rvas) {
+        if (ctx == null) {
+            return;
+        }
+        Bundle extras = new Bundle();
+        extras.putString(StatusStore.EXTRA_PKG, ctx.getPackageName());
+        extras.putString(StatusStore.EXTRA_DUMP_STATUS, status == null ? "" : status);
+        if (rvas != null) {
+            extras.putString(StatusStore.EXTRA_DUMP_RVAS, rvas);
+        }
+        try {
+            ctx.getContentResolver().call(StatusStore.HEARTBEAT_URI,
+                    StatusStore.METHOD_DUMP_STATE, null, extras);
+            return;
+        } catch (Throwable ignored) {
+        }
+        try {
+            Intent i = new Intent(StatusStore.ACTION_DUMP_STATE);
+            i.setComponent(new ComponentName(StatusStore.MODULE_PKG, StatusStore.RECEIVER));
+            i.putExtras(extras);
+            ctx.sendBroadcast(i);
+        } catch (Throwable ignored) {
+        }
+    }
 }

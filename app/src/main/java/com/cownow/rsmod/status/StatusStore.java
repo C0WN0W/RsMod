@@ -21,6 +21,7 @@ public final class StatusStore {
     public static final String METHOD_HEARTBEAT = "heartbeat";
     public static final String METHOD_CONFIG = "config";
     public static final String ACTION_HEARTBEAT = "com.cownow.rsmod.action.HEARTBEAT";
+    public static final String ACTION_DUMP_STATE = "com.cownow.rsmod.action.DUMP_STATE";
     public static final String RECEIVER = MODULE_PKG + ".status.StatusReceiver";
 
     public static final String EXTRA_PKG = "pkg";
@@ -28,12 +29,20 @@ public final class StatusStore {
     public static final String EXTRA_SELF = "self";
     public static final String EXTRA_CFG = "cfg";
 
+    // ---- dump 面板 ----
+    public static final String METHOD_DUMP_STATE = "dump_state";
+    public static final String EXTRA_DUMP_STATUS = "dump_status";
+    public static final String EXTRA_DUMP_RVAS = "dump_rvas";
+
     private static final String PREFS = "rsmod_status";
     private static final String K_SELF_TIME = "self_time";
     private static final String K_GAME_TIME = "game_time";
     private static final String K_SRC_PKG = "src_pkg";
     private static final String K_SRC_PROCESS = "src_process";
     private static final String K_CFG = "cfg_source";
+    private static final String K_DUMP_STATUS = "dump_status";
+    private static final String K_DUMP_RVAS = "dump_rvas";
+    private static final String K_DUMP_TIME = "dump_time";
 
     private StatusStore() {
     }
@@ -87,6 +96,32 @@ public final class StatusStore {
     /** 游戏进程上报的配置来源：prefs / provider / defaults（空 = 旧版本没上报）。 */
     public static String gameCfg(Context ctx) {
         return prefs(ctx).getString(K_CFG, "");
+    }
+
+    /** dump 进度/结果（游戏进程上报，设置页读取）。rvas 传 null 表示只更新状态文本。 */
+    public static void recordDump(Context ctx, String status, String rvas) {
+        if (ctx == null) {
+            return;
+        }
+        SharedPreferences.Editor e = prefs(ctx).edit()
+                .putString(K_DUMP_STATUS, status == null ? "" : status)
+                .putLong(K_DUMP_TIME, System.currentTimeMillis());
+        if (rvas != null) {
+            e.putString(K_DUMP_RVAS, rvas);
+        }
+        e.apply();
+    }
+
+    public static String dumpStatus(Context ctx) {
+        return prefs(ctx).getString(K_DUMP_STATUS, "");
+    }
+
+    public static String dumpRvas(Context ctx) {
+        return prefs(ctx).getString(K_DUMP_RVAS, "");
+    }
+
+    public static long dumpTime(Context ctx) {
+        return prefs(ctx).getLong(K_DUMP_TIME, 0L);
     }
 
     public static void clear(Context ctx) {

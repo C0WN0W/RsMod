@@ -1,5 +1,6 @@
 package com.cownow.rsmod;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -21,6 +22,8 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import com.cownow.rsmod.dump.DumpService;
+import com.cownow.rsmod.dump.Relocator;
 import com.cownow.rsmod.status.HookReporter;
 import com.cownow.rsmod.status.StatusStore;
 
@@ -61,10 +64,14 @@ public class MainActivity extends AppCompatActivity {
         bindRows();
         bindAdvanced();
         bindStatus();
+        bindDump();
 
         findViewById(R.id.btn_save).setOnClickListener(v -> save());
         findViewById(R.id.btn_reset).setOnClickListener(v -> confirmReset());
         findViewById(R.id.btn_export).setOnClickListener(v -> exportRva());
+        findViewById(R.id.btn_dump).setOnClickListener(v -> startDump());
+        findViewById(R.id.btn_dump_refresh).setOnClickListener(v -> bindDump());
+        findViewById(R.id.btn_apply_rva).setOnClickListener(v -> applyDumpRvas());
 
         ((TextView) findViewById(R.id.tv_targets)).setText(targetTable());
         ((TextView) findViewById(R.id.tv_paths)).setText(pathTable());
@@ -213,9 +220,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // 从游戏切回来时刷新：心跳由被注入的游戏进程写入
+        // 从游戏切回来时刷新：心跳与 dump 进度都由被注入的游戏进程写入
         if (chipStatus != null) {
             bindStatus();
+            bindDump();
         }
     }
 
@@ -290,6 +298,70 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         snack(getString(R.string.ui_export_done, f.getAbsolutePath()));
+    }
+
+    // ---------------- RVA Dump 面板 ----------------
+
+    private void startDump() {
+        try {
+            Intent i = new Intent(DumpService.ACTION_DUMP);
+            i.setPackage(Config.GAME_PKG);
+            sendBroadcast(i);
+            snack(getString(R.string.ui_dump_sent));
+        } catch (Throwable t) {
+            snack("发送指令失败: " + t);
+        }
+    }
+
+    private void bindDump() {
+        TextView status = findViewById(R.id.tv_dump_status);
+        TextView rvas = findViewById(R.id.tv_dump_rvas);
+        TextView apply = findViewById(R.id.btn_apply_rva);
+
+        String st = StatusStore.dumpStatus(this);
+        long t = StatusStore.dumpTime(this);
+        if (st == null || st.isEmpty()) {
+            status.setText(R.string.ui_dump_idle);
+        } else if (t > 0) {
+            status.setText(getString(R.string.ui_dump_last, formatTime(t)) + "\n" + st);
+        } else {
+            status.setText(st);
+        }
+
+        int[] parsed = Config.parseRvaList(StatusStore.dumpRvas(this));
+        boolean valid = parsed != null && allPositive(parsed);
+        if (valid) {
+            rvas.setText(Relocator.toCsv(parsed));
+            rvas.setVisibility(View.VISIBLE);
+        } else {
+            rvas.setVisibility(View.GONE);
+        }
+        apply.setEnabled(valid);
+        apply.setAlpha(valid ? 1f : 0.5f);
+    }
+
+    private void applyDumpRvas() {
+        int[] parsed = Config.parseRvaList(StatusStore.dumpRvas(this));
+        if (parsed == null || !allPositive(parsed)) {
+            snack(getString(R.string.ui_dump_bad_rvas));
+            return;
+        }
+        String csv = Relocator.toCsv(parsed);
+        prefs.edit().putString(Config.K_NATIVE_RVA, csv).apply();
+        etRva.setText(csv);
+        snack(getString(R.string.ui_dump_applied));
+    }
+
+    private static boolean allPositive(int[] arr) {
+        if (arr == null || arr.length == 0) {
+            return false;
+        }
+        for (int v : arr) {
+            if (v <= 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // ---------------- 文本块 ----------------

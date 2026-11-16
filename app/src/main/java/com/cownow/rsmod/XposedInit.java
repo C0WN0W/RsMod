@@ -149,6 +149,13 @@ public final class XposedInit implements IXposedHookLoadPackage, IXposedHookZygo
 
         HookUtil.log("install end");
 
+        // 注册 dump 触发端：设置页点「开始 Dump」时发广播过来
+        try {
+            com.cownow.rsmod.dump.DumpTrigger.register(ctx);
+        } catch (Throwable t) {
+            HookUtil.log("DumpTrigger register error " + t);
+        }
+
         try {
             HookReporter.report(ctx, ctx.getPackageName(),
                     HookReporter.processName(ctx), false, Config.source);

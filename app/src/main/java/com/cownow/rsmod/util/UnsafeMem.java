@@ -16,6 +16,9 @@ public final class UnsafeMem {
     private static Method getByteOL;   // getByte(Object, long)
     private static Method putByteLB;   // putByte(long, byte)
     private static Method putByteOLB;  // putByte(Object, long, byte)
+    private static Method copyOOL;     // copyMemory(Object, long, Object, long, long)
+    private static Method arrayBase;   // arrayBaseOffset(Class)
+    private static long byteArrayBase = 16L;
     private static String error = "not initialized";
 
     private UnsafeMem() {
@@ -46,6 +49,19 @@ public final class UnsafeMem {
                 error = "no putByte";
                 unsafe = null;
                 return false;
+            }
+            // 批量读取用：copyMemory(Object,long,Object,long,long) + arrayBaseOffset(byte[])
+            copyOOL = optional(uc, "copyMemory",
+                    Object.class, long.class, Object.class, long.class, long.class);
+            arrayBase = optional(uc, "arrayBaseOffset", Class.class);
+            if (arrayBase != null) {
+                try {
+                    Object v = arrayBase.invoke(unsafe, byte[].class);
+                    if (v instanceof Number) {
+                        byteArrayBase = ((Number) v).longValue();
+                    }
+                } catch (Throwable ignored) {
+                }
             }
             error = "";
             return true;
@@ -136,6 +152,46 @@ public final class UnsafeMem {
         } catch (Throwable t) {
             error = "W:" + t;
             return false;
+        }
+    }
+
+    /** 是否有 copyMemory 批量读取能力（dump 扫描用；没有就退回逐字节读）。 */
+    public static boolean hasBulkRead() {
+        return unsafe != null && copyOOL != null;
+    }
+
+    /**
+     * 批量读内存到 byte[]（src 为绝对地址）。返回实际读到的字节数，-1 表示失败。
+     * 有 copyMemory 时一次 memcpy；否则退回逐字节 getByte。
+     */
+    public static int readInto(long addr, byte[] dst, int len) {
+        return readInto(addr, dst, 0, len);
+    }
+
+    public static int readInto(long addr, byte[] dst, int dstOff, int len) {
+        if (unsafe == null || dst == null || len <= 0 || dstOff < 0 || dstOff + len > dst.length) {
+            return -1;
+        }
+        if (copyOOL != null) {
+            try {
+                copyOOL.invoke(unsafe, null, Long.valueOf(addr), dst,
+                        Long.valueOf(byteArrayBase + dstOff), Long.valueOf(len));
+                return len;
+            } catch (Throwable t) {
+                error = "copy:" + t;
+            }
+        }
+        try {
+            for (int i = 0; i < len; i++) {
+                Object v = (getByteL != null)
+                        ? getByteL.invoke(unsafe, Long.valueOf(addr + i))
+                        : getByteOL.invoke(unsafe, null, Long.valueOf(addr + i));
+                dst[dstOff + i] = ((Number) v).byteValue();
+            }
+            return len;
+        } catch (Throwable t) {
+            error = "R:" + t;
+            return -1;
         }
     }
 }

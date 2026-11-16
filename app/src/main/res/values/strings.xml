@@ -68,5 +68,17 @@
 
     <string name="ui_tips">1. 游戏更新后若 RVA 校验失败，日志里会出现 [SKIP]，把新 RVA 填进 rva.txt 或上面的输入框\n2. 改完点保存，然后强停游戏再启动\n3. 日志查看：LSPosed 管理器 → 日志，过滤 RsMod</string>
 
+    <!-- RVA Dump 面板 -->
+    <string name="ui_section_dump">RVA Dump</string>
+    <string name="ui_dump_hint">游戏更新后重新定位 RVA：先进入任意关卡，再点「开始 Dump」。\nDump 产出 metadata / dec.so / rva.txt 到 Android/data/com.turbochilli.rollingsky/files/rsmod_dump/。</string>
+    <string name="ui_dump_start">开始 Dump</string>
+    <string name="ui_dump_refresh">刷新</string>
+    <string name="ui_dump_apply">填入自定义 RVA</string>
+    <string name="ui_dump_idle">还没有 dump 记录</string>
+    <string name="ui_dump_sent">指令已发送，等待游戏进程回报…</string>
+    <string name="ui_dump_applied">已填入自定义 RVA，记得点「保存」</string>
+    <string name="ui_dump_bad_rvas">结果不是 9 个有效 RVA，不能填入</string>
+    <string name="ui_dump_last">上次更新：%1$s</string>
+
     <string name="ui_content_desc_icon">功能图标</string>
 </resources>

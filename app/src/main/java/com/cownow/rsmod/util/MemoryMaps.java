@@ -6,10 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * /proc/self/maps 解析（原 main2.java findDecBase 的加强版）。
- *
- * 原脚本只挑 “同时带 x 和 w” 的最大 libil2cpp 段；这里保留同一策略，
- * 额外记录全部 libil2cpp 段，便于判断“未定位到 il2cpp”到底是没加载还是权限不对。
+ * /proc/self/maps 解析
  */
 public final class MemoryMaps {
 
@@ -17,12 +14,14 @@ public final class MemoryMaps {
         public final long start;
         public final long end;
         public final String perm;
+        public final long offset;
         public final String path;
 
-        Seg(long start, long end, String perm, String path) {
+        Seg(long start, long end, String perm, long offset, String path) {
             this.start = start;
             this.end = end;
             this.perm = perm;
+            this.offset = offset;
             this.path = path;
         }
 
@@ -30,16 +29,25 @@ public final class MemoryMaps {
             return end - start;
         }
 
+        public boolean readable() {
+            return perm != null && perm.contains("r");
+        }
+
+        public boolean contains(long addr) {
+            return addr >= start && addr < end;
+        }
+
         @Override
         public String toString() {
-            return Long.toHexString(start) + "-" + Long.toHexString(end) + " " + perm + " " + path;
+            return Long.toHexString(start) + "-" + Long.toHexString(end) + " " + perm
+                    + " off=0x" + Long.toHexString(offset) + " " + path;
         }
     }
 
     private MemoryMaps() {
     }
 
-    /** 读取 maps 中包含 pathFilter 的全部段。 */
+    /** 读取 maps 中包含 pathFilter 的全部段（null = 全部）。 */
     public static List<Seg> segments(String pathFilter) {
         List<Seg> out = new ArrayList<>();
         BufferedReader br = null;
@@ -60,14 +68,18 @@ public final class MemoryMaps {
                 }
                 long s;
                 long e;
+                long off = 0L;
                 try {
                     s = Long.parseLong(se[0], 16);
                     e = Long.parseLong(se[1], 16);
+                    if (parts.length > 2) {
+                        off = Long.parseLong(parts[2], 16);
+                    }
                 } catch (Throwable t) {
                     continue;
                 }
                 String path = parts.length > 5 ? parts[5] : "";
-                out.add(new Seg(s, e, parts[1], path));
+                out.add(new Seg(s, e, parts[1], off, path));
             }
         } catch (Throwable ignored) {
         } finally {
