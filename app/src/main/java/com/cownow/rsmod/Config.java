@@ -218,7 +218,7 @@ public final class Config {
         return out;
     }
 
-    /** 把 "0xadd01c,0xbe5a94,..." 解析成 int[]，失败返回 null。 */
+    /** 把 "0x124c584,0x15c6a3c,..." 解析成 int[]，失败返回 null。 */
     public static int[] parseRvaList(String s) {
         if (s == null) {
             return null;

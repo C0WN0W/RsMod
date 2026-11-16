@@ -1,19 +1,15 @@
 package com.cownow.rsmod;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
 import org.junit.Test;
 
-import java.lang.reflect.Field;
-
-/**
- * 纯 JVM 侧自检：确认从 main2.java 搬过来的补丁字节确实解码成预期的 ARM64 指令，
- * 以及 RVA / 掩码解析正确。跑法：./gradlew :app:testDebugUnitTest
- */
 public class NativePatchMathTest {
 
     private static byte[] bytes(String field) throws Exception {
@@ -48,39 +44,55 @@ public class NativePatchMathTest {
         assertEquals(0xD65F03C0L, leU32(new byte[]{b[4], b[5], b[6], b[7]}));
     }
 
+    /** main2.1 的新 RVA 表：9 项、顺序与目标名对应、全部落在脚本的合理区间内。 */
     @Test
-    public void probeBytesMatchScript() throws Exception {
-        Field f = NativePatcher.class.getDeclaredField("PROBE_ORIG");
-        f.setAccessible(true);
-        byte[] probe = (byte[]) f.get(null);
-        assertArrayEquals(new byte[]{-12, 15, 30, -8, -13, 123, 1, -87}, probe);
-        // 前 4 字节即 get_Get_Shield 首指令
-        assertEquals(0xF81E0FF4L, leU32(new byte[]{probe[0], probe[1], probe[2], probe[3]}));
+    public void newRvaTable() {
+        assertEquals(9, NativePatcher.DEFAULT_RVAS.length);
+        assertEquals(9, NativePatcher.TARGET_NAMES.length);
+
+        int[] expected = {
+                0x124c584, 0x15c6a3c, 0x15c6d0c,
+                0xcc3bf4, 0xcc3a78, 0x124c2f0,
+                0x124bc4c, 0x124bcd4, 0x15c6918
+        };
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals("rva#" + i, expected[i], NativePatcher.DEFAULT_RVAS[i]);
+            // 脚本里的合理性区间：0x1000 < rva < 0x2a00000
+            assertTrue("rva#" + i + " 越界", NativePatcher.DEFAULT_RVAS[i] > 0x1000
+                    && NativePatcher.DEFAULT_RVAS[i] < 0x2a00000);
+        }
     }
 
     @Test
-    public void defaultRvasAndMaskLineUp() {
-        assertEquals(NativePatcher.DEFAULT_RVAS.length, NativePatcher.TARGET_NAMES.length);
-        assertEquals(9, NativePatcher.DEFAULT_RVAS.length);
+    public void maskMatchesScriptEnabled() {
         boolean[] mask = Config.maskToArray(Config.DEFAULT_MASK);
         assertTrue(mask[0]);
-        assertFalse(mask[1]);
-        assertFalse(mask[2]);
+        assertFalse(mask[1]);   // Set_Shield 默认关
+        assertFalse(mask[2]);   // Set_Levitate 默认关
         assertTrue(mask[3]);
-        assertEquals(0xadd01c, NativePatcher.DEFAULT_RVAS[0]);
-        assertEquals(0xbe5970, NativePatcher.DEFAULT_RVAS[8]);
+        assertTrue(mask[8]);
+    }
+
+    /** 探针必须用最后一个目标（RVA[8]），rva.txt 更新后自动跟随。 */
+    @Test
+    public void probeFollowsLastTarget() throws Exception {
+        Method m = NativePatcher.class.getDeclaredMethod("probeRva", int[].class);
+        m.setAccessible(true);
+        int[] custom = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99aabb};
+        assertEquals(0x99aabb, m.invoke(null, custom));
+        assertEquals(NativePatcher.DEFAULT_RVAS[8], m.invoke(null, NativePatcher.DEFAULT_RVAS));
     }
 
     @Test
     public void rvaListParsing() {
-        int[] parsed = Config.parseRvaList("0xadd01c, 0xbe5a94, 0xbe5d64, 0xeb383c, 0xeb36c0,"
-                + " 0xadcd88, 0xadc6e4, 0xadc76c, 0xbe5970");
+        int[] parsed = Config.parseRvaList("0x124c584, 0x15c6a3c, 0x15c6d0c, 0xcc3bf4, 0xcc3a78,"
+                + " 0x124c2f0, 0x124bc4c, 0x124bcd4, 0x15c6918");
         assertNotNull(parsed);
-        assertEquals(0xbe5970, parsed[8]);
+        assertEquals(0x15c6918, parsed[8]);
 
-        int[] plain = Config.parseRvaList("add01c be5a94 be5d64 eb383c eb36c0 adcd88 adc6e4 adc76c be5970");
+        int[] plain = Config.parseRvaList("124c584 15c6a3c 15c6d0c cc3bf4 cc3a78 124c2f0 124bc4c 124bcd4 15c6918");
         assertNotNull(plain);
-        assertEquals(0xadd01c, plain[0]);
+        assertEquals(0x124c584, plain[0]);
 
         assertEquals(null, Config.parseRvaList("0x1,0x2"));
         assertEquals(null, Config.parseRvaList("zz,1,2,3,4,5,6,7,8"));
