@@ -14,11 +14,13 @@ public final class NativePatcher implements Runnable {
 
     public static final String SO_NAME = "libil2cpp.so";
 
-    /** 默认 RVA（游戏更新后的版本）；rva.txt 或模块设置可覆盖。 */
+    /** 默认 RVA；rva.txt 或模块设置可覆盖。 */
     public static final int[] DEFAULT_RVAS = new int[]{
             0x124c584, 0x15c6a3c, 0x15c6d0c,
             0xcc3bf4, 0xcc3a78, 0x124c2f0,
-            0x124bc4c, 0x124bcd4, 0x15c6918
+            0x124bc4c, 0x124bcd4, 0x15c6918,
+            // 浮空
+            0x124b634, 0x124b6bc, 0x124b970, 0x15c6be8
     };
 
     public static final String[] TARGET_NAMES = new String[]{
@@ -30,7 +32,11 @@ public final class NativePatcher implements Runnable {
             "PropsShield::resetShield",
             "PropsShield::get_IsUseingShield",
             "PropsShield::get_IsTrigger",
-            "PropUtil::get_Get_Shield"
+            "PropUtil::get_Get_Shield",
+            "PropLevitate::get_IsUseingLevitate",
+            "PropLevitate::get_IsTrigger",
+            "PropLevitate::TakeLevitate",
+            "PropUtil::get_Get_Levitate"
     };
 
     private static final long[] EXPECT_HEAD = new long[]{
@@ -42,7 +48,11 @@ public final class NativePatcher implements Runnable {
             0xF40F1EF8L,  // resetShield       str x20,[sp,#-0x10]!
             0L,           // get_IsUseingShield（脚本未给首指令）
             0L,           // get_IsTrigger     （脚本未给首指令）
-            0xF81E0FF4L   // get_Get_Shield    （旧版探针首字节推导，可能已过期）
+            0xF81E0FF4L,  // get_Get_Shield    （旧版探针首字节推导，可能已过期）
+            0L,           // get_IsUseingLevitate（新目标，未记录）
+            0L,           // get_IsTrigger（PropLevitate，未记录）
+            0L,           // TakeLevitate（新目标，未记录）
+            0L            // get_Get_Levitate（新目标，未记录）
     };
 
     // arm64 补丁体（小端）
@@ -50,9 +60,6 @@ public final class NativePatcher implements Runnable {
     private static final byte[] TRUE_BYTES = new byte[]{32, 0, -128, 82, -64, 3, 95, -42};   // mov w0,#1 ; ret
     private static final byte[] BIG_BYTES = new byte[]{-32, -31, -124, 82, -64, 3, 95, -42}; // movz w0,#9999 ; ret
     private static final int SHIELD_FAKE = 9999;
-
-    /** 探针取第 9 个目标：PropUtil::get_Get_Shield。 */
-    private static final int PROBE_INDEX = 8;
 
     private static final long OFF_MIN = 0x1000L;
     private static final long OFF_MAX = 0x2a00000L;
@@ -147,9 +154,12 @@ public final class NativePatcher implements Runnable {
 
     // ---------------- 等待段就绪 ----------------
 
-    /** 探针：最后一个目标（RVA[8]），读到非零指令即认为 rwx 段已解密。 */
+    /** 探针：目标表最后一项，读到非零指令即认为 rwx 段已解密；rva.txt 更新后自动跟随。 */
     private static int probeRva(int[] rvas) {
-        return rvas.length > PROBE_INDEX ? rvas[PROBE_INDEX] : rvas[0];
+        if (rvas == null || rvas.length == 0) {
+            return 0;
+        }
+        return rvas[rvas.length - 1];
     }
 
     private long waitForBase(int[] rvas) {
@@ -237,10 +247,10 @@ public final class NativePatcher implements Runnable {
 
     private static byte[] patchFor(int idx) {
         String nm = TARGET_NAMES[idx];
-        if (nm.contains("get_Get_Shield")) {
+        if (isCountGetter(nm)) {
             return BIG_BYTES;                 // 数量 -> 9999
         }
-        if (nm.contains("get_IsUseingShield") || nm.contains("get_IsTrigger")) {
+        if (isBoolGetter(nm)) {
             return TRUE_BYTES;                // bool -> true
         }
         return RET_BYTES;                     // void -> ret
@@ -248,13 +258,25 @@ public final class NativePatcher implements Runnable {
 
     private static String patchDesc(int idx) {
         String nm = TARGET_NAMES[idx];
-        if (nm.contains("get_Get_Shield")) {
+        if (isCountGetter(nm)) {
             return "mov w0,#" + SHIELD_FAKE + ";ret";
         }
-        if (nm.contains("get_IsUseingShield") || nm.contains("get_IsTrigger")) {
+        if (isBoolGetter(nm)) {
             return "mov w0,#1;ret";
         }
         return "ret";
+    }
+
+    /** 数量 getter：护盾 / 浮空都要显示成 9999。 */
+    private static boolean isCountGetter(String name) {
+        return name.contains("get_Get_Shield") || name.contains("get_Get_Levitate");
+    }
+
+    /** bool getter：护盾、浮空的 IsUseing / IsTrigger。 */
+    private static boolean isBoolGetter(String name) {
+        return name.contains("get_IsUseingShield")
+                || name.contains("get_IsUseingLevitate")
+                || name.contains("get_IsTrigger");
     }
 
     // ---------------- RVA 来源 ----------------

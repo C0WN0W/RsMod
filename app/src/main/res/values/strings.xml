@@ -45,8 +45,8 @@
     <string name="ui_row_strict">防写坏进程</string>
     <string name="ui_row_strict_sub">首指令与脚本记录不符时跳过写入</string>
 
-    <string name="ui_mask_hint">Hook开关 (9 位 0/1)</string>
-    <string name="ui_mask_helper">默认 100111111，顺序对应下方目标表，错误修改可能会导致补丁失效</string>
+    <string name="ui_mask_hint">Hook开关 (13 位 0/1)</string>
+    <string name="ui_mask_helper">默认 1001111111111，顺序对应下方目标表，错误修改可能会导致补丁失效</string>
     <string name="ui_rva_hint">自定义 RVA (留空 = 用内置默认值)</string>
     <string name="ui_rva_helper">9 位 HEX，逗号分隔</string>
 
@@ -60,7 +60,7 @@
     <string name="ui_cancel">取消</string>
 
     <string name="ui_saved">已保存，重启游戏生效</string>
-    <string name="ui_mask_error">必须是 9 位 0/1</string>
+    <string name="ui_mask_error">必须是 0/1 串（短了会自动给新目标补 1）</string>
     <string name="ui_rva_error">需要 9 个十六进制数</string>
     <string name="ui_export_done">已导出到 %1$s</string>
     <string name="ui_export_fail">导出失败：%1$s</string>

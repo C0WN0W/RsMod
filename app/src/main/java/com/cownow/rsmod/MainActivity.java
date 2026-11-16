@@ -230,7 +230,8 @@ public class MainActivity extends AppCompatActivity {
     // ---------------- 动作 ----------------
 
     private void save() {
-        String mask = text(etMask).trim();
+        // 允许填比目标数短的老掩码：Config.normalizeMask 会补齐（新增目标默认开）
+        String mask = Config.normalizeMask(text(etMask));
         if (!mask.matches("[01]{" + NativePatcher.DEFAULT_RVAS.length + "}")) {
             tilMask.setError(getString(R.string.ui_mask_error));
             etMask.requestFocus();
@@ -260,6 +261,7 @@ public class MainActivity extends AppCompatActivity {
                 .putString(Config.K_NATIVE_RVA, rva)
                 .apply();
 
+        etMask.setText(mask);
         snack(getString(R.string.ui_saved));
     }
 

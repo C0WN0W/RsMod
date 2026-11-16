@@ -12,7 +12,8 @@ public final class Config {
     public static final String GAME_PKG = "com.turbochilli.rollingsky";
     public static final String PREFS_NAME = "rsmod";
 
-    public static final String DEFAULT_MASK = "100111111";
+    /* 9护盾 4浮空 */
+    public static final String DEFAULT_MASK = "1001111111111";
 
     // ---- key ----
     public static final String K_INTEGRITY = "integrity";
@@ -195,19 +196,44 @@ public final class Config {
     }
 
     private static void normalize() {
-        if (nativeMask == null || nativeMask.length() != NativePatcher.DEFAULT_RVAS.length) {
-            nativeMask = DEFAULT_MASK;
-        }
-        for (int i = 0; i < nativeMask.length(); i++) {
-            char ch = nativeMask.charAt(i);
-            if (ch != '0' && ch != '1') {
-                nativeMask = DEFAULT_MASK;
-                break;
-            }
-        }
+        nativeMask = normalizeMask(nativeMask);
         if (nativeRva == null) {
             nativeRva = "";
         }
+    }
+
+    /**
+     * 掩码对齐目标表长度：
+     *   - 非法字符 -> 用默认值
+     *   - 比目标数短（老版本保存的 9 位）-> 保留原有位，新增目标补 1（默认开启）
+     *   - 比目标数长 -> 截断
+     */
+    public static String normalizeMask(String mask) {
+        int n = NativePatcher.DEFAULT_RVAS.length;
+        if (mask == null) {
+            return DEFAULT_MASK;
+        }
+        String m = mask.trim();
+        if (m.isEmpty()) {
+            return DEFAULT_MASK;
+        }
+        for (int i = 0; i < m.length(); i++) {
+            char c = m.charAt(i);
+            if (c != '0' && c != '1') {
+                return DEFAULT_MASK;
+            }
+        }
+        if (m.length() == n) {
+            return m;
+        }
+        if (m.length() > n) {
+            return m.substring(0, n);
+        }
+        StringBuilder sb = new StringBuilder(m);
+        while (sb.length() < n) {
+            sb.append('1');
+        }
+        return sb.toString();
     }
 
     public static boolean[] maskToArray(String mask) {
